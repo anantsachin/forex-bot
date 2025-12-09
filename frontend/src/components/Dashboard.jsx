@@ -33,7 +33,7 @@ const Dashboard = () => {
             setData(response.data);
         } catch (error) {
             console.error('Error scanning market:', error);
-            alert(`Failed to scan market. Error: ${error.message}\n\nEnsure backend is running on port 8000.`);
+            alert(`Failed to scan market. Error: ${error.message}\n\nPlease check your internet connection or verify the backend is online.`);
         } finally {
             setLoading(false);
         }
