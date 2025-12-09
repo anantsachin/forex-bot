@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import TradePanel from './TradePanel';
 import Chart from './Chart';
 
-const API_URL = '/api';
+import { API_URL } from '../config';
 
 const AutoTrade = () => {
     const [autoMode, setAutoMode] = useState(false);

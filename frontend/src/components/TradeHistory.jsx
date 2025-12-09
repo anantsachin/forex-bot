@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { History, ArrowUpRight, ArrowDownRight, Search, Filter } from 'lucide-react';
 
-const API_URL = '/api';
+import { API_URL } from '../config';
 
 const TradeHistory = () => {
     const [trades, setTrades] = useState([]);

@@ -5,7 +5,7 @@ import axios from 'axios';
 import { Play, Square, Scan, TrendingUp, TrendingDown, DollarSign, Activity, RotateCcw } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const API_URL = '/api';
+import { API_URL } from '../config';
 
 const Dashboard = () => {
     const [symbol, setSymbol] = useState('EURUSD');

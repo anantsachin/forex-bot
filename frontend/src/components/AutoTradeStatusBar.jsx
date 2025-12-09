@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Play, Square, Activity, Clock, TrendingUp } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = '/api';
+import { API_URL } from '../config';
 
 const AutoTradeStatusBar = () => {
     const [status, setStatus] = useState({
@@ -107,8 +107,8 @@ const AutoTradeStatusBar = () => {
                     onClick={status.is_running ? handleStop : handleStart}
                     disabled={loading}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${status.is_running
-                            ? 'bg-red-600 hover:bg-red-700 text-white'
-                            : 'bg-green-600 hover:bg-green-700 text-white'
+                        ? 'bg-red-600 hover:bg-red-700 text-white'
+                        : 'bg-green-600 hover:bg-green-700 text-white'
                         } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                     {status.is_running ? (

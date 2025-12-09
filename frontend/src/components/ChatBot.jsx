@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, Bot, User, ThumbsUp, ThumbsDown, Brain, Trash2 } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = '/api';
+import { API_URL } from '../config';
 
 const ChatBot = () => {
     const [messages, setMessages] = useState([
@@ -108,9 +108,9 @@ const ChatBot = () => {
                         onClick={handleTrain}
                         disabled={trainingStatus === 'training'}
                         className={`flex items-center gap-1 px-3 py-1 rounded-lg text-sm font-medium transition-colors ${trainingStatus === 'training' ? 'bg-yellow-600/50 cursor-not-allowed' :
-                                trainingStatus === 'success' ? 'bg-green-600 text-white' :
-                                    trainingStatus === 'error' ? 'bg-red-600 text-white' :
-                                        'bg-purple-600 hover:bg-purple-700 text-white'
+                            trainingStatus === 'success' ? 'bg-green-600 text-white' :
+                                trainingStatus === 'error' ? 'bg-red-600 text-white' :
+                                    'bg-purple-600 hover:bg-purple-700 text-white'
                             }`}
                     >
                         <Brain className="w-4 h-4" />
@@ -143,8 +143,8 @@ const ChatBot = () => {
                                     <button
                                         onClick={() => handleFeedback(msg.id, 'positive')}
                                         className={`p-1 rounded transition-colors ${msg.rating === 'positive'
-                                                ? 'bg-green-600 text-white'
-                                                : 'bg-gray-600/50 text-gray-400 hover:bg-green-600/20 hover:text-green-400'
+                                            ? 'bg-green-600 text-white'
+                                            : 'bg-gray-600/50 text-gray-400 hover:bg-green-600/20 hover:text-green-400'
                                             }`}
                                         title="Good response"
                                     >
@@ -153,8 +153,8 @@ const ChatBot = () => {
                                     <button
                                         onClick={() => handleFeedback(msg.id, 'negative')}
                                         className={`p-1 rounded transition-colors ${msg.rating === 'negative'
-                                                ? 'bg-red-600 text-white'
-                                                : 'bg-gray-600/50 text-gray-400 hover:bg-red-600/20 hover:text-red-400'
+                                            ? 'bg-red-600 text-white'
+                                            : 'bg-gray-600/50 text-gray-400 hover:bg-red-600/20 hover:text-red-400'
                                             }`}
                                         title="Bad response"
                                     >
@@ -194,8 +194,8 @@ const ChatBot = () => {
                         onClick={handleSend}
                         disabled={loading || !input.trim()}
                         className={`p-2 rounded-lg transition-colors ${loading || !input.trim()
-                                ? 'bg-gray-600 cursor-not-allowed'
-                                : 'bg-blue-600 hover:bg-blue-700'
+                            ? 'bg-gray-600 cursor-not-allowed'
+                            : 'bg-blue-600 hover:bg-blue-700'
                             } text-white`}
                     >
                         <Send className="w-5 h-5" />
