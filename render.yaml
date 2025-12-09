@@ -3,9 +3,9 @@ services:
   - type: web
     name: forex-bot-backend
     env: docker
-    rootCommand: cd backend
     plan: free
-    dockerContext: backend
+    dockerContext: .
+    dockerFilePath: backend/Dockerfile
     envVars:
       - key: PYTHON_VERSION
         value: 3.9.0
