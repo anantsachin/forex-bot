@@ -1,8 +1,23 @@
 // Configuration for the frontend application
+let apiUrl = import.meta.env.VITE_API_URL || '';
 
-// API URL logic:
-// 1. If VITE_API_URL environment variable is set (e.g. in Vercel), use it.
-// 2. Otherwise, default to '/api' which works with the local Vite proxy.
-// Automatically append /api if VITE_API_URL is set (and doesn't have it), or default to /api
-const baseUrl = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
-export const API_URL = baseUrl.endsWith('/api') ? baseUrl : `${baseUrl || ''}/api`;
+// Normalize: remove quotes, trim spaces, remove trailing slash
+apiUrl = apiUrl.replace(/['"]/g, '').trim().replace(/\/$/, '');
+
+// If env var is set, ensure it ends with /api
+if (apiUrl && !apiUrl.endsWith('/api')) {
+    apiUrl += '/api';
+}
+
+// Default to local proxy if empty
+if (!apiUrl) {
+    apiUrl = '/api';
+}
+
+// Debug log to help verify correct configuration in production
+console.log('🔌 API Configuration:', {
+    raw: import.meta.env.VITE_API_URL,
+    resolved: apiUrl
+});
+
+export const API_URL = apiUrl;
