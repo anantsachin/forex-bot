@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+pandas
+yfinance
+scikit-learn
+ta
+requests
+python-dotenv
+pydantic
+numpy
+google-generativeai
+sqlalchemy
+requests
+python-dotenv
