@@ -72,6 +72,10 @@ class BacktestRequest(BaseModel):
     symbol: str = "EURUSD"
     initial_balance: float = 10000
 
+@app.get("/")
+def read_root():
+    return {"status": "online", "message": "Forex Trading Bot API is running. Access endpoints at /api/..."}
+
 @app.get("/api/status")
 def get_status():
     return {"status": "online", "message": "Forex Bot is running"}
