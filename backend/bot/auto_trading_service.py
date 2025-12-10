@@ -90,7 +90,7 @@ class AutoTradingService:
                     stats = paper_trader.get_stats()
                     lot_size = calculate_position_size(
                         balance=stats['balance'],
-                        risk_per_trade=0.10,  # 10% risk
+                        risk_per_trade=0.01,  # 1% risk
                         entry=trade_levels['entry_price'],
                         stop=trade_levels['stop_loss']
                     )

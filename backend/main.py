@@ -211,11 +211,15 @@ def run_bot():
         if not best:
             return {"status": "no_new_opportunities", "message": "All good opportunities already traded"}
         
+        # Cooldown check: Don't take the same trade if we just closed it (within 2 hours)
+        if paper_trader.is_trade_cooldown(best['symbol'], best['trade_levels']['direction'], minutes=120):
+             return {"status": "cooldown", "message": f"Cooldown active for {best['symbol']} - waiting for fresh signal"}
+
         # Calculate position size (risk 2% of balance)
         trade_levels = best['trade_levels']
         lot_size = calculate_position_size(
             balance=paper_trader.balance,
-            risk_per_trade=0.02,
+            risk_per_trade=0.01,
             entry=trade_levels['entry_price'],
             stop=trade_levels['stop_loss']
         )
@@ -250,7 +254,7 @@ def get_trades():
     try:
         return {
             "active_trades": paper_trader.get_active_trades(),
-            "recent_history": paper_trader.get_trade_history(limit=20),
+            "recent_history": paper_trader.get_trade_history(limit=0),
             "stats": paper_trader.get_stats()
         }
     except Exception as e:
