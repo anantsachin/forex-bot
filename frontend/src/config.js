@@ -9,9 +9,10 @@ if (apiUrl && !apiUrl.endsWith('/api')) {
     apiUrl += '/api';
 }
 
-// Default to local proxy if empty
+// Default to the Live Hugging Face Backend if no environment variable is set
 if (!apiUrl) {
-    apiUrl = '/api';
+    apiUrl = 'https://anantwdev-forexbot.hf.space/api';
+    console.log('Using Default Hugging Face Backend');
 }
 
 // Debug log to help verify correct configuration in production
