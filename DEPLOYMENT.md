@@ -22,25 +22,26 @@ I have already:
    git push -u origin main
    ```
 
-2. **Deploy to Render**
-   - Go to [Render Dashboard](https://dashboard.render.com/).
-   - Click **New +** -> **Blueprint**.
+2. **Deploy to Hugging Face Spaces**
+   - Go to [Hugging Face Spaces](https://huggingface.co/spaces).
+   - Click **Create new Space**.
+   - Choose **Docker** as the Space SDK.
+   - Select **Public** or **Private** visibility.
    - Connect your GitHub repository.
-   - Render will detect `render.yaml` and set up the services.
-   - **Important**: You need to set the `GEMINI_API_KEY` environment variable in the Render dashboard if you remove it from the code.
+   - Hugging Face will build and deploy your Dockerfile.
+   - **Important**: You need to set the `GEMINI_API_KEY` environment variable in the Hugging Face Space settings ("Variables and secrets").
 
 3. **Link Frontend to Backend**
-   - Once the Backend is valid on Render, copy its URL (e.g., `https://forex-bot-backend.onrender.com`).
+   - Once the Space is "Running" on Hugging Face, copy its Direct URL (e.g., `https://anantwdev-forexbot.hf.space`).
    - Go to your Vercel Project Settings -> **Environment Variables**.
-   - Add a new variable:
-     - Key: `VITE_API_URL`
-     - Value: `<YOUR_RENDER_BACKEND_URL>` (Do not include a trailing slash, e.g., `https://my-backend.onrender.com`)
-   - Redeploy the Frontend on Vercel.
+   - Update `VITE_API_URL`:
+     - Value: `<YOUR_HF_SPACE_URL>` (No trailing slash)
+   - **Crucial**: Go to deployments and click **Redeploy** on Vercel for the change to take effect.
 
-## Frontend Configuration (404 Fix)
-The frontend has been updated to use the `VITE_API_URL` environment variable.
-- **Local Development**: If `VITE_API_URL` is not set, it defaults to `/api`, which works with the local Vite proxy.
-- **Production**: You **MUST** set `VITE_API_URL` in Vercel to point to your deployed backend. Without this, API calls will fail with 404.
+## Frontend Configuration
+The frontend uses `VITE_API_URL` to connect to the backend.
+- **Local**: Defaults to `/api` (proxy).
+- **Production**: MUST be set to your Hugging Face Space URL.
 
 ## Notes
 - The Gemini API Key is currently hardcoded in `backend/bot/chatbot_service.py`. It is highly recommended to use Environment Variables for security.

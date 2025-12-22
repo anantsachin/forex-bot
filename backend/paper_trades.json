@@ -1,6 +1,6 @@
 {
   "initial_balance": 10000,
-  "balance": 14081.107055338201,
+  "balance": 10274.369817812712,
   "trades": [
     {
       "trade_id": "NZDUSD_1764871946_8572",
@@ -147,13 +147,41 @@
       "lot_size": 0.57,
       "score": 64.39,
       "entry_time": "2025-12-09T10:15:10.734107",
-      "exit_time": null,
-      "exit_price": null,
-      "pnl": 0.0,
-      "status": "OPEN"
+      "exit_time": "2025-12-22T15:31:20.179123",
+      "exit_price": 2.0223100185394287,
+      "pnl": 564.81,
+      "status": "CLOSED_WIN"
+    },
+    {
+      "trade_id": "USDCAD_1765264540_3994",
+      "symbol": "USDCAD",
+      "direction": "BUY",
+      "entry_price": 1.38555,
+      "stop_loss": 1.3836,
+      "target_price": 1.38828,
+      "lot_size": 1.44,
+      "score": 80.68,
+      "entry_time": "2025-12-09T12:45:40.071750",
+      "exit_time": "2025-12-09T15:37:04.434810",
+      "exit_price": 1.3835999965667725,
+      "pnl": -202.95,
+      "status": "CLOSED_LOSS"
+    },
+    {
+      "trade_id": "USDCAD_1765265891_3493",
+      "symbol": "USDCAD",
+      "direction": "BUY",
+      "entry_price": 1.38548,
+      "stop_loss": 1.38344,
+      "target_price": 1.38833,
+      "lot_size": 6.9,
+      "score": 80.8,
+      "entry_time": "2025-12-09T13:08:11.656856",
+      "exit_time": "2025-12-22T15:31:25.003929",
+      "exit_price": 1.3771599531173706,
+      "pnl": -4168.6,
+      "status": "CLOSED_LOSS"
     }
   ],
-  "active_trade_ids": [
-    "GBPAUD_1765255510_2354"
-  ]
+  "active_trade_ids": []
 }

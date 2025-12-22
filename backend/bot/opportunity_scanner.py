@@ -15,6 +15,15 @@ AVAILABLE_SYMBOLS = [
     "CADJPY", "EURGBP", "EURAUD", "GBPAUD", "EURCAD"
 ]
 
+# Model Cache: {symbol: {'predictor': model, 'regressor': model, 'last_trained': timestamp}}
+_MODEL_CACHE = {}
+_MODEL_TTL = 3600  # Retrain every hour
+
+# Scan Cache: {'results': [], 'timestamp': 0}
+_SCAN_CACHE = {'results': [], 'timestamp': 0}
+_SCAN_TTL = 60  # Cache scan results for 60 seconds
+import time
+
 def calculate_opportunity_score(df: pd.DataFrame, prediction: int, confidence: float, council_result: Dict) -> float:
     """
     Calculate opportunity score based on ML confidence, Council consensus, and patterns.
@@ -99,6 +108,31 @@ def scan_single_pair(symbol: str, period: str = "1mo", interval: str = "15m") ->
     Scan a single trading pair and return analysis.
     Returns None if pair doesn't meet quality thresholds.
     """
+    
+    def get_cached_models(symbol: str, df: pd.DataFrame):
+        """Get cached models or train new ones if expired."""
+        current_time = time.time()
+        
+        if symbol in _MODEL_CACHE:
+            cache = _MODEL_CACHE[symbol]
+            if current_time - cache['last_trained'] < _MODEL_TTL:
+                return cache['predictor'], cache['regressor']
+        
+        # Train new models
+        # print(f"Training models for {symbol}...")
+        predictor = ForexPredictor()
+        predictor.train(df)
+        
+        regressor = ForexRegressor()
+        regressor.train(df)
+        
+        _MODEL_CACHE[symbol] = {
+            'predictor': predictor,
+            'regressor': regressor,
+            'last_trained': current_time
+        }
+        
+        return predictor, regressor
     try:
         # Fetch and analyze data
         df = fetch_forex_data(symbol, period=period, interval=interval)
@@ -112,9 +146,10 @@ def scan_single_pair(symbol: str, period: str = "1mo", interval: str = "15m") ->
         council = CouncilOfAgents()
         council_result = council.deliberate(df)
         
-        # 2. ML Classification (Direction)
-        predictor = ForexPredictor()
-        predictor.train(df)
+        # 2. & 3. Get Cached Models (Predictor & Regressor)
+        predictor, regressor = get_cached_models(symbol, df)
+        
+        # ML Classification
         prediction, confidence = predictor.predict_next_movement(df)
         
         # CRITICAL FILTER: Reject low confidence predictions early
@@ -122,9 +157,7 @@ def scan_single_pair(symbol: str, period: str = "1mo", interval: str = "15m") ->
             print(f"  ✗ {symbol}: Rejected - Low confidence ({confidence*100:.1f}%)")
             return None
         
-        # 3. ML Regression (Future Path)
-        regressor = ForexRegressor()
-        regressor.train(df)
+        # ML Regression (Future Path)
         future_path = regressor.predict_future_path(df, steps=10, interval=interval)
         
         # Calculate opportunity score
@@ -188,6 +221,13 @@ def scan_all_pairs(max_workers: int = 5) -> List[Dict]:
     """
     opportunities = []
     
+    
+    # Check scan cache
+    current_time = time.time()
+    if current_time - _SCAN_CACHE['timestamp'] < _SCAN_TTL and _SCAN_CACHE['results']:
+        print("Using cached scan results...")
+        return _SCAN_CACHE['results']
+        
     print(f"Starting scan of {len(AVAILABLE_SYMBOLS)} symbols...")
     
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -204,6 +244,13 @@ def scan_all_pairs(max_workers: int = 5) -> List[Dict]:
     
     # Sort by score (highest first)
     opportunities.sort(key=lambda x: x['score'], reverse=True)
+    
+    # Sort by score (highest first)
+    opportunities.sort(key=lambda x: x['score'], reverse=True)
+    
+    # Update cache
+    _SCAN_CACHE['results'] = opportunities
+    _SCAN_CACHE['timestamp'] = time.time()
     
     print(f"Scan complete! Found {len(opportunities)} opportunities")
     return opportunities

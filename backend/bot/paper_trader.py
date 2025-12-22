@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import List, Dict, Optional, Callable
 import random
 from bot.data_loader import get_live_price
+from bot.telegram_notifier import send_telegram_message, format_trade_message
 
 # Global callback for loss notifications
 _loss_callback: Optional[Callable] = None
@@ -185,9 +186,17 @@ class PaperTrade:
             score=data.get('score', 0.0)
         )
 
+
 class PaperTradingEngine:
     def __init__(self, initial_balance: float = 10000, data_file: str = "paper_trades.json"):
-        self.data_file = data_file
+        # Use absolute path to ensure persistence across restarts/different CWDs
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        # go up two levels from backend/bot/paper_trader.py to backend/
+        project_root = os.path.dirname(os.path.dirname(base_dir))
+        # Save in the backend directory
+        status_file_path = os.path.join(project_root, "backend", data_file)
+
+        self.data_file = status_file_path
         self.initial_balance = initial_balance
         self.balance = initial_balance
         self.trades: List[PaperTrade] = []
@@ -195,6 +204,24 @@ class PaperTradingEngine:
         
         # Load existing data if available
         self._load_data()
+    
+    def is_trade_cooldown(self, symbol: str, direction: str, minutes: int = 60) -> bool:
+        """Check if we should wait before taking this same trade again."""
+        cutoff_time = datetime.now().timestamp() - (minutes * 60)
+        
+        for trade in reversed(self.trades):
+            # Check only closed trades or recently opened ones
+            # If we recently closed a trade for this symbol/direction, wait
+            if trade.symbol == symbol and trade.direction == direction:
+                # Check exit time if closed
+                if trade.status != "OPEN" and trade.exit_time:
+                     if trade.exit_time.timestamp() > cutoff_time:
+                         return True
+                # Also check entry time (don't take duplicate if we JUST opened one, though main.py covers this)
+                if trade.entry_time.timestamp() > cutoff_time:
+                    return True
+                    
+        return False
     
     def _save_data(self):
         """Save all trades and balance to JSON file."""
@@ -256,6 +283,14 @@ class PaperTradingEngine:
         self.active_trades[trade_id] = trade
         
         print(f"Opened {direction} trade for {symbol} at {entry_price} (Score: {score})")
+        
+        # Send Telegram notification
+        try:
+            msg = format_trade_message(trade.to_dict(), "OPEN")
+            send_telegram_message(msg)
+        except Exception as e:
+            print(f"Error sending Telegram notification: {e}")
+            
         self._save_data()  # Save after opening trade
         return trade
     
@@ -368,6 +403,13 @@ class PaperTradingEngine:
         global _loss_callback
         if _loss_callback and "LOSS" in reason and trade.pnl < 0:
             _loss_callback()
+            
+        # Send Telegram notification
+        try:
+            msg = format_trade_message(trade.to_dict(), "CLOSE")
+            send_telegram_message(msg)
+        except Exception as e:
+            print(f"Error sending Telegram notification: {e}")
         
         self._save_data()  # Save after closing trade
     
@@ -411,6 +453,8 @@ class PaperTradingEngine:
     def get_trade_history(self, limit: int = 50) -> List[Dict]:
         """Get recent closed trades."""
         closed_trades = [t for t in self.trades if t.status != "OPEN"]
+        if limit == 0 or limit is None:
+            return [trade.to_dict() for trade in closed_trades]
         return [trade.to_dict() for trade in closed_trades[-limit:]]
     
     def get_stats(self) -> Dict:
