@@ -97,7 +97,7 @@ def test_discord_config():
             "hint": "Add it in Hugging Face Space Settings → Variables and secrets"
         }
 
-    # Custom Adapter to force IP connection with correct SNI
+    # Custom Adapter to force IP connection with correct SNI disabling verification for IP
     class ForceIPAdapter(HTTPAdapter):
         def __init__(self, ip_address, **kwargs):
             self.ip_address = ip_address
@@ -105,12 +105,20 @@ def test_discord_config():
 
         def send(self, request, **kwargs):
             from urllib3.connection import HTTPSConnection
+            import ssl
+            
             _orig_connect = HTTPSConnection.connect
             
             def patched_connect(conn_self):
                 conn_self.host = self.ip_address
+                # Method 1: Just set the IP
+                # This usually fails verification because cert is for discord.com
                 return _orig_connect(conn_self)
                 
+            # Crucial: Disable verification for this specific request context
+            # because we are intentionally hitting an IP with a Hostname cert
+            kwargs['verify'] = False 
+            
             HTTPSConnection.connect = patched_connect
             try:
                 return super().send(request, **kwargs)
