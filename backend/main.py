@@ -97,12 +97,17 @@ def test_discord_config():
     
     # Send test message
     try:
+        import requests
         test_msg = "🧪 **Discord Test Message**\n\nIf you see this, your bot is correctly configured! ✅\n\n*Forex Trading Bot*"
-        send_discord_message(test_msg)
+        
+        # Send directly to see the response
+        response = requests.post(webhook_url, json={"content": test_msg}, timeout=5)
         
         return {
-            "status": "success",
-            "message": "Test message sent! Check your Discord channel.",
+            "status": "success" if response.status_code == 204 else "partial_success",
+            "message": "Test message sent! Check your Discord channel." if response.status_code == 204 else "Request sent but Discord returned unexpected status",
+            "discord_status_code": response.status_code,
+            "discord_response": response.text if response.text else "Empty (normal for success)",
             "webhook_url_prefix": webhook_url[:40] + "..."
         }
     except Exception as e:
