@@ -123,21 +123,28 @@ def test_telegram_config():
         
         # Fallback to Google DNS-over-HTTPS
         try:
-            doh_response = requests.get("https://dns.google/resolve?name=api.telegram.org", timeout=5).json()
-            if "Answer" in doh_response:
-                resolved_ip = doh_response["Answer"][0]["data"]
-                connectivity["dns_doh"] = f"OK ({resolved_ip})"
-                dns_source = "doh"
-            else:
-                connectivity["dns_doh"] = "FAILED: No answer in DoH response"
+            # Try Cloudflare first (might give different IP)
+            cf_response = requests.get("https://cloudflare-dns.com/dns-query?name=api.telegram.org&type=A", headers={"Accept": "application/dns-json"}, timeout=5).json()
+            if "Answer" in cf_response:
+                resolved_ip = cf_response["Answer"][0]["data"]
+                connectivity["dns_doh_cf"] = f"OK ({resolved_ip})"
+                dns_source = "doh_cloudflare"
+            
+            # If Cloudflare failed, try Google
+            if not resolved_ip:
+                doh_response = requests.get("https://dns.google/resolve?name=api.telegram.org", timeout=5).json()
+                if "Answer" in doh_response:
+                    resolved_ip = doh_response["Answer"][0]["data"]
+                    connectivity["dns_doh_google"] = f"OK ({resolved_ip})"
+                    dns_source = "doh_google"
         except Exception as doh_e:
-            connectivity["dns_doh"] = f"FAILED: {str(doh_e)}"
+            connectivity["dns_doh_error"] = f"FAILED: {str(doh_e)}"
 
     if not resolved_ip:
         return {
-            "version": "v3.0-doh-fix",
+            "version": "v5.0-multi-doh",
             "status": "fatal_dns_error",
-            "message": "Could not resolve api.telegram.org via System or DoH",
+            "message": "Could not resolve api.telegram.org via System, Cloudflare, or Google",
             "connectivity_check": connectivity
         }
 
