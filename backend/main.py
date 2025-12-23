@@ -108,13 +108,45 @@ def test_telegram_config():
             }
         }
 
-    # Bypass DNS by using direct IP for Telegram API
-    # 149.154.167.220 is one of api.telegram.org's IPs
-    url = f"https://149.154.167.220/bot{token}/sendMessage"
+    # 2. Advanced DNS Resolution via Google DoH (DNS over HTTPS)
+    # This bypasses local DNS if it's blocking Telegram
+    resolved_ip = None
+    dns_source = "system"
+    
+    try:
+        # Try system DNS first
+        import socket
+        resolved_ip = socket.gethostbyname("api.telegram.org")
+        connectivity["dns_system"] = f"OK ({resolved_ip})"
+    except Exception as e:
+        connectivity["dns_system"] = f"FAILED: {str(e)}"
+        
+        # Fallback to Google DNS-over-HTTPS
+        try:
+            doh_response = requests.get("https://dns.google/resolve?name=api.telegram.org", timeout=5).json()
+            if "Answer" in doh_response:
+                resolved_ip = doh_response["Answer"][0]["data"]
+                connectivity["dns_doh"] = f"OK ({resolved_ip})"
+                dns_source = "doh"
+            else:
+                connectivity["dns_doh"] = "FAILED: No answer in DoH response"
+        except Exception as doh_e:
+            connectivity["dns_doh"] = f"FAILED: {str(doh_e)}"
+
+    if not resolved_ip:
+        return {
+            "version": "v3.0-doh-fix",
+            "status": "fatal_dns_error",
+            "message": "Could not resolve api.telegram.org via System or DoH",
+            "connectivity_check": connectivity
+        }
+
+    # 3. Connect using the resolved IP
+    url = f"https://{resolved_ip}/bot{token}/sendMessage"
     
     payload = {
         "chat_id": chat_id,
-        "text": "🧪 <b>Server Connectivity Test</b>\n\nIf you see this, your live server is correctly configured! ✅",
+        "text": f"🧪 <b>Server Connectivity Test ({dns_source})</b>\n\nResolved IP: {resolved_ip}\n\nIf you see this, we bypassed the DNS block! 🚀",
         "parse_mode": "HTML"
     }
     
@@ -123,24 +155,24 @@ def test_telegram_config():
     }
     
     try:
-        # verify=False is needed because the SSL cert matches the hostname, not the IP
-        # This is safe for this specific debug test
+        # verify=False is required when hitting IP directly with Host header
+        import urllib3
+        urllib3.disable_warnings() 
+        
         response = requests.post(url, json=payload, headers=headers, timeout=10, verify=False)
         data = response.json()
         
         return {
-            "version": "v2.0-root-dns",
+            "version": "v3.0-doh-fix",
             "status": "success" if response.status_code == 200 else "failed_upstream",
             "connectivity_check": connectivity,
+            "resolution_method": dns_source,
+            "resolved_ip": resolved_ip,
             "telegram_response": data,
-            "config_used": {
-                "token_prefix": token[:5] + "...",
-                "chat_id": chat_id
-            }
         }
     except Exception as e:
         return {
-            "version": "v2.0-root-dns",
+            "version": "v3.0-doh-fix",
             "status": "exception", 
             "error": str(e),
             "connectivity_check": connectivity
