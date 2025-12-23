@@ -43,6 +43,14 @@ async def monitor_trades():
 async def lifespan(app: FastAPI):
     # Start background task
     task = asyncio.create_task(monitor_trades())
+    
+    # Notify Telegram that the bot is starting
+    try:
+        from bot.telegram_notifier import send_telegram_message
+        send_telegram_message("🚀 <b>Trading Bot Server Started</b>\n\nOperational and ready to trade! \u2705")
+    except Exception as e:
+        print(f"Failed to send startup notification: {e}")
+        
     yield
     # Cancel task on shutdown
     task.cancel()
