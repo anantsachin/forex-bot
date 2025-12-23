@@ -82,100 +82,37 @@ def get_status():
 
 @app.get("/api/test-discord")
 def test_discord_config():
-    """Test Discord webhook configuration with advanced DNS bypass."""
+    """Test webhook configuration (Works with Discord or n8n)."""
     import os
     import requests
-    from requests.adapters import HTTPAdapter
-    from urllib3.connectionpool import HTTPSConnectionPool
-
+    
     webhook_url = os.getenv("DISCORD_WEBHOOK_URL")
     
     if not webhook_url:
         return {
             "status": "error",
             "message": "DISCORD_WEBHOOK_URL environment variable not found",
-            "hint": "Add it in Hugging Face Space Settings → Variables and secrets"
+            "hint": "Add your n8n or Discord webhook URL in Hugging Face variables"
         }
-
-    # Custom Adapter to force IP connection with correct SNI disabling verification for IP
-    class ForceIPAdapter(HTTPAdapter):
-        def __init__(self, ip_address, **kwargs):
-            self.ip_address = ip_address
-            super().__init__(**kwargs)
-
-        def send(self, request, **kwargs):
-            from urllib3.connection import HTTPSConnection
-            import ssl
-            
-            _orig_connect = HTTPSConnection.connect
-            
-            def patched_connect(conn_self):
-                conn_self.host = self.ip_address
-                # Method 1: Just set the IP
-                # This usually fails verification because cert is for discord.com
-                return _orig_connect(conn_self)
-                
-            # Crucial: Disable verification for this specific request context
-            # because we are intentionally hitting an IP with a Hostname cert
-            kwargs['verify'] = False 
-            
-            HTTPSConnection.connect = patched_connect
-            try:
-                return super().send(request, **kwargs)
-            finally:
-                HTTPSConnection.connect = _orig_connect
-
-    connectivity = {}
-    resolved_ip = None
-    dns_source = "system"
-
-    # 1. Try resolving via Google DNS-over-HTTPS (DoH)
+    
+    # Send test message
     try:
-        # Resolve 'discord.com'
-        doh_response = requests.get("https://dns.google/resolve?name=discord.com", timeout=5).json()
-        if "Answer" in doh_response:
-            resolved_ip = doh_response["Answer"][0]["data"]
-            connectivity["dns_doh"] = f"OK ({resolved_ip})"
-            dns_source = "doh_google"
-        else:
-            connectivity["dns_doh"] = "FAILED: No answer"
-    except Exception as e:
-        connectivity["dns_doh"] = f"FAILED: {str(e)}"
-
-    if not resolved_ip:
-         return {
-            "status": "fatal_dns_error",
-            "message": "Could not resolve discord.com via DoH",
-            "connectivity_check": connectivity,
-             "version": "v1.0-discord-doh"
-        }
-
-    # 2. Prepare the session with the custom adapter
-    session = requests.Session()
-    session.mount("https://discord.com", ForceIPAdapter(resolved_ip))
-
-    # 3. Send the test message
-    try:
-        test_msg = f"🧪 **Discord Test Message ({dns_source})**\n\nIf you see this, we bypassed the DNS block! 🚀\nResolved IP: `{resolved_ip}`"
+        test_msg = "🧪 **Proxy/Test Message**\n\nIf you see this, the Webhook is working! ✅\n\n*Forex Trading Bot*"
         
-        # We invoke the webhook URL using our custom session
-        # The adapter will direct traffic to the IP, but keep 'discord.com' as the host header/SNI
-        response = session.post(webhook_url, json={"content": test_msg}, timeout=10)
+        # Standard request (relying on n8n to handle the Discord connection)
+        response = requests.post(webhook_url, json={"content": test_msg}, timeout=10)
         
         return {
-            "status": "success" if response.status_code == 204 else "partial_success",
-            "message": "Test message sent! Check your Discord channel.",
-            "discord_status_code": response.status_code,
-            "connected_ip": resolved_ip,
-            "dns_method": dns_source,
-             "version": "v1.0-discord-doh"
+            "status": "success" if response.status_code in [200, 201, 204] else "partial_success",
+            "message": "Message sent to Webhook!",
+            "webhook_response_code": response.status_code,
+            "webhook_response_text": response.text,
+            "used_url": webhook_url[:30] + "..."
         }
     except Exception as e:
         return {
             "status": "exception",
-            "error": str(e),
-            "connectivity_check": connectivity,
-             "version": "v1.0-discord-doh"
+            "error": str(e)
         }
 
 @app.get("/api/test-telegram")
