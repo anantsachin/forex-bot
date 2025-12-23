@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import List, Dict, Optional, Callable
 import random
 from bot.data_loader import get_live_price
-from bot.telegram_notifier import send_telegram_message, format_trade_message
+from bot.discord_notifier import send_discord_message, format_trade_message
 
 # Global callback for loss notifications
 _loss_callback: Optional[Callable] = None
@@ -284,12 +284,12 @@ class PaperTradingEngine:
         
         print(f"Opened {direction} trade for {symbol} at {entry_price} (Score: {score})")
         
-        # Send Telegram notification
+        # Send Discord notification
         try:
             msg = format_trade_message(trade.to_dict(), "OPEN")
-            send_telegram_message(msg)
+            send_discord_message(msg)
         except Exception as e:
-            print(f"Error sending Telegram notification: {e}")
+            print(f"Error sending Discord notification: {e}")
             
         self._save_data()  # Save after opening trade
         return trade
@@ -404,12 +404,12 @@ class PaperTradingEngine:
         if _loss_callback and "LOSS" in reason and trade.pnl < 0:
             _loss_callback()
             
-        # Send Telegram notification
+        # Send Discord notification
         try:
             msg = format_trade_message(trade.to_dict(), "CLOSE")
-            send_telegram_message(msg)
+            send_discord_message(msg)
         except Exception as e:
-            print(f"Error sending Telegram notification: {e}")
+            print(f"Error sending Discord notification: {e}")
         
         self._save_data()  # Save after closing trade
     
