@@ -141,29 +141,68 @@ def test_telegram_config():
             "connectivity_check": connectivity
         }
 
-    # 3. Connect using the resolved IP
-    url = f"https://{resolved_ip}/bot{token}/sendMessage"
+    # 3. Connection with proper SNI (Server Name Indication)
+    # The timeout likely happens because Telegram drops connections with wrong SNI (IP instead of Hostname)
+    
+    from requests.adapters import HTTPAdapter
+    from urllib3.connectionpool import HTTPSConnectionPool
+    
+    class ForceIPAdapter(HTTPAdapter):
+        def __init__(self, ip_address, **kwargs):
+            self.ip_address = ip_address
+            super().__init__(**kwargs)
+
+        def get_connection(self, url, proxies=None):
+            pool = super().get_connection(url, proxies)
+            # Override the pool's _make_request or similar internals is hard
+            # Easier approach: Use a custom connection pool that overrides _validate_conn
+            return pool
+
+        def send(self, request, **kwargs):
+            # The cleanest hack: Update the full url to use the IP, but keep the Host header
+            # AND crucially, rely on the fact that we can't easily force SNI in standard requests 
+            # without deep monkeypatching.
+            # 
+            # ALTERNATIVE: Use the Host header trick but with standard URL
+            # We will use the standard hostname URL, but patch the socket connection.
+            
+            from urllib3.connection import HTTPSConnection
+            
+            # Save original
+            _orig_connect = HTTPSConnection.connect
+            
+            def patched_connect(conn_self):
+                # Force connection to our resolved IP
+                conn_self.host = self.ip_address
+                return _orig_connect(conn_self)
+                
+            HTTPSConnection.connect = patched_connect
+            try:
+                return super().send(request, **kwargs)
+            finally:
+                # Restore original
+                HTTPSConnection.connect = _orig_connect
+
+    # Create session with our custom adapter
+    session = requests.Session()
+    # Mount it for telegram
+    session.mount("https://api.telegram.org", ForceIPAdapter(resolved_ip))
+    
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
     
     payload = {
         "chat_id": chat_id,
-        "text": f"🧪 <b>Server Connectivity Test ({dns_source})</b>\n\nResolved IP: {resolved_ip}\n\nIf you see this, we bypassed the DNS block! 🚀",
+        "text": f"🧪 <b>Server Connectivity Test ({dns_source} + SNI Fix)</b>\n\nResolved IP: {resolved_ip}\n\nSuccess! We fixed the SSL/SNI Handshake issue! 🚀",
         "parse_mode": "HTML"
     }
     
-    headers = {
-        "Host": "api.telegram.org"
-    }
-    
     try:
-        # verify=False is required when hitting IP directly with Host header
-        import urllib3
-        urllib3.disable_warnings() 
-        
-        response = requests.post(url, json=payload, headers=headers, timeout=10, verify=False)
+        # We use the standard URL now
+        response = session.post(url, json=payload, timeout=10)
         data = response.json()
         
         return {
-            "version": "v3.0-doh-fix",
+            "version": "v4.0-sni-fix",
             "status": "success" if response.status_code == 200 else "failed_upstream",
             "connectivity_check": connectivity,
             "resolution_method": dns_source,
@@ -172,7 +211,7 @@ def test_telegram_config():
         }
     except Exception as e:
         return {
-            "version": "v3.0-doh-fix",
+            "version": "v4.0-sni-fix",
             "status": "exception", 
             "error": str(e),
             "connectivity_check": connectivity
