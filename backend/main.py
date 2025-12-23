@@ -80,6 +80,48 @@ def read_root():
 def get_status():
     return {"status": "online", "message": "Forex Bot is running"}
 
+@app.get("/api/test-telegram")
+def test_telegram_config():
+    """Diagnostic endpoint to test Telegram on the server."""
+    import os
+    import requests
+    
+    token = os.getenv("TELEGRAM_BOT_TOKEN")
+    chat_id = os.getenv("TELEGRAM_CHAT_ID")
+    
+    if not token or not chat_id:
+        return {
+            "status": "error",
+            "message": "Missing Environment Variables",
+            "debug": {
+                "TELEGRAM_BOT_TOKEN": "FOUND" if token else "MISSING",
+                "TELEGRAM_CHAT_ID": "FOUND" if chat_id else "MISSING"
+            }
+        }
+
+    # Try sending a raw request to catch specific errors
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": "🧪 <b>Server Connectivity Test</b>\n\nIf you see this, your live server is correctly configured! ✅",
+        "parse_mode": "HTML"
+    }
+    
+    try:
+        response = requests.post(url, json=payload, timeout=10)
+        data = response.json()
+        
+        return {
+            "status": "success" if response.status_code == 200 else "failed_upstream",
+            "telegram_response": data,
+            "config_used": {
+                "token_prefix": token[:5] + "...",
+                "chat_id": chat_id
+            }
+        }
+    except Exception as e:
+        return {"status": "exception", "error": str(e)}
+
 @app.post("/api/scan")
 def scan_market(request: ScanRequest):
     try:
