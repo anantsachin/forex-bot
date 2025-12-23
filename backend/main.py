@@ -86,6 +86,14 @@ def test_telegram_config():
     import os
     import requests
     
+    # 1. Test General Connectivity first
+    connectivity = {}
+    try:
+        requests.get("https://www.google.com", timeout=5)
+        connectivity["google.com"] = "OK"
+    except Exception as e:
+        connectivity["google.com"] = f"FAILED: {str(e)}"
+
     token = os.getenv("TELEGRAM_BOT_TOKEN")
     chat_id = os.getenv("TELEGRAM_CHAT_ID")
     
@@ -93,6 +101,7 @@ def test_telegram_config():
         return {
             "status": "error",
             "message": "Missing Environment Variables",
+            "connectivity_check": connectivity,
             "debug": {
                 "TELEGRAM_BOT_TOKEN": "FOUND" if token else "MISSING",
                 "TELEGRAM_CHAT_ID": "FOUND" if chat_id else "MISSING"
@@ -113,6 +122,7 @@ def test_telegram_config():
         
         return {
             "status": "success" if response.status_code == 200 else "failed_upstream",
+            "connectivity_check": connectivity,
             "telegram_response": data,
             "config_used": {
                 "token_prefix": token[:5] + "...",
@@ -120,7 +130,11 @@ def test_telegram_config():
             }
         }
     except Exception as e:
-        return {"status": "exception", "error": str(e)}
+        return {
+            "status": "exception", 
+            "error": str(e),
+            "connectivity_check": connectivity
+        }
 
 @app.post("/api/scan")
 def scan_market(request: ScanRequest):
