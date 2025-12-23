@@ -80,6 +80,38 @@ def read_root():
 def get_status():
     return {"status": "online", "message": "Forex Bot is running"}
 
+@app.get("/api/test-discord")
+def test_discord_config():
+    """Test Discord webhook configuration."""
+    import os
+    from bot.discord_notifier import send_discord_message
+    
+    webhook_url = os.getenv("DISCORD_WEBHOOK_URL")
+    
+    if not webhook_url:
+        return {
+            "status": "error",
+            "message": "DISCORD_WEBHOOK_URL environment variable not found",
+            "hint": "Add it in Hugging Face Space Settings → Variables and secrets"
+        }
+    
+    # Send test message
+    try:
+        test_msg = "🧪 **Discord Test Message**\n\nIf you see this, your bot is correctly configured! ✅\n\n*Forex Trading Bot*"
+        send_discord_message(test_msg)
+        
+        return {
+            "status": "success",
+            "message": "Test message sent! Check your Discord channel.",
+            "webhook_url_prefix": webhook_url[:40] + "..."
+        }
+    except Exception as e:
+        return {
+            "status": "exception",
+            "error": str(e),
+            "webhook_url_prefix": webhook_url[:40] + "..." if webhook_url else "N/A"
+        }
+
 @app.get("/api/test-telegram")
 def test_telegram_config():
     """Diagnostic endpoint to test Telegram on the server."""
