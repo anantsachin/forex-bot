@@ -45,3 +45,19 @@ The frontend uses `VITE_API_URL` to connect to the backend.
 
 ## Notes
 - The Gemini API Key is currently hardcoded in `backend/bot/chatbot_service.py`. It is highly recommended to use Environment Variables for security.
+
+## Telegram Notifications Setup (Vercel Relay)
+This project uses a **Vercel Serverless Function** (`api/telegram.js`) to relay messages to Telegram, keeping your bot token secure on the Vercel side if desired, or acting as a proxy.
+
+### 1. Configure Vercel Environment Variables
+Go to your Vercel Project Settings -> **Environment Variables** and add:
+- `TELEGRAM_BOT_TOKEN`: Your BotFather token.
+- `TELEGRAM_CHAT_ID`: Your target chat ID.
+- `RELAY_SECRET`: (Optional) A secret string (e.g., `my_super_secret_key`) to prevent unauthorized use.
+
+### 2. Configure Backend Environment Variables
+Where your backend runs (e.g., Hugging Face Spaces), add:
+- `VERCEL_RELAY_URL`: `https://<your-vercel-app>.vercel.app/api/telegram` (e.g. `https://forex-bot-psi.vercel.app/api/telegram`)
+- `RELAY_SECRET`: Must match the secret set in Step 1.
+
+**Note:** The backend will fallback to direct Telegram API calls if `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` are present in the backend environment and the relay fails or is not configured.

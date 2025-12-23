@@ -9,16 +9,42 @@ load_dotenv()
 
 def send_telegram_message(message: str):
     """
-    Send a message to the configured Telegram group.
+    Send a message to the configured Telegram group, either directly or via Vercel relay.
     
     Args:
         message (str): The message content to send.
     """
+    # 1. Try Vercel Relay
+    relay_url = os.getenv("VERCEL_RELAY_URL")
+    relay_secret = os.getenv("RELAY_SECRET")
+    
+    if relay_url:
+        try:
+            headers = {"Content-Type": "application/json"}
+            if relay_secret:
+                headers["X-Relay-Secret"] = relay_secret
+                
+            response = requests.post(
+                relay_url, 
+                json={"message": message}, 
+                headers=headers,
+                timeout=10
+            )
+            response.raise_for_status()
+            # print("[Telegram Relay] ✅ Notification sent successfully")
+            return
+        except Exception as e:
+            print(f"[Telegram Relay] ⚠️ Failed to send via relay (falling back to direct): {e}")
+            # Fall through to direct method if relay fails
+            pass
+
+    # 2. Direct Telegram API (Fallback or Primary)
     bot_token = os.getenv("TELEGRAM_BOT_TOKEN")
     chat_id = os.getenv("TELEGRAM_CHAT_ID")
     
     if not bot_token or not chat_id:
-        print("[Telegram] ⚠️  Credentials not found. Skipping notification.")
+        if not relay_url:
+            print("[Telegram] ⚠️  Credentials not found and no relay configured. Skipping notification.")
         return
 
     url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
