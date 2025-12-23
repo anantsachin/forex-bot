@@ -121,6 +121,7 @@ def test_telegram_config():
         data = response.json()
         
         return {
+            "version": "v2.0-root-dns",
             "status": "success" if response.status_code == 200 else "failed_upstream",
             "connectivity_check": connectivity,
             "telegram_response": data,
@@ -131,6 +132,7 @@ def test_telegram_config():
         }
     except Exception as e:
         return {
+            "version": "v2.0-root-dns",
             "status": "exception", 
             "error": str(e),
             "connectivity_check": connectivity

@@ -1,6 +1,9 @@
 # Read the doc: https://huggingface.co/docs/hub/spaces-sdks-docker
 FROM python:3.9
 
+# Install system dependencies for networking
+RUN apt-get update && apt-get install -y ca-certificates dnsutils iputils-ping && rm -rf /var/lib/apt/lists/*
+
 # Set up a new user named "user" with user ID 1000
 # RUN useradd -m -u 1000 user
 # USER user
