@@ -1,5 +1,5 @@
 # Read the doc: https://huggingface.co/docs/hub/spaces-sdks-docker
-FROM python:3.9
+FROM python:3.10
 
 # Install system dependencies for networking
 RUN apt-get update && apt-get install -y ca-certificates dnsutils iputils-ping && rm -rf /var/lib/apt/lists/*
