@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import List, Dict, Optional
 
 # Configure Gemini API
-GEMINI_API_KEY = "AIzaSyBx2kQCcRQYe0y8E1CogoV8FAYxyq2aDp8"
+GEMINI_API_KEY = ""
 genai.configure(api_key=GEMINI_API_KEY)
 
 class ChatBot:
