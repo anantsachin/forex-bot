@@ -204,6 +204,13 @@ class PaperTradingEngine:
         
         # Load existing data if available
         self._load_data()
+
+    def is_symbol_active(self, symbol: str) -> bool:
+        """Check if there is an active trade for the given symbol."""
+        for trade in self.active_trades.values():
+            if trade.symbol == symbol:
+                return True
+        return False
     
     def is_trade_cooldown(self, symbol: str, direction: str, minutes: int = 60) -> bool:
         """Check if we should wait before taking this same trade again."""

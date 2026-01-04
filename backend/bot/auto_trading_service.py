@@ -2,7 +2,7 @@ import asyncio
 import time
 from datetime import datetime
 from typing import Optional
-from bot.opportunity_scanner import get_best_opportunity
+from bot.opportunity_scanner import get_best_opportunity, scan_all_pairs
 from bot.trade_calculator import calculate_trade_levels, calculate_position_size
 from bot.paper_trader import paper_trader, set_loss_callback
 
@@ -76,11 +76,29 @@ class AutoTradingService:
                 
                 print(f"[Auto-Trade] Scanning for opportunities... (Trade #{self.trade_count + 1})")
                 
-                # Get best opportunity
-                best = get_best_opportunity()
+                # Get all opportunities sorted by score
+                opportunities = scan_all_pairs()
+                best = None
                 
-                # Score threshold set to 45 to allow trading
-                if best and best.get('score', 0) >= 45.0:
+                # Find the best valid opportunity (high score + no active trade on pair)
+                if opportunities:
+                    for opp in opportunities:
+                        # Check score threshold first
+                        if opp.get('score', 0) < 45.0:
+                            # Since they are sorted by score, if we hit one < 45, the rest are also < 45
+                            break
+                            
+                        # Check if trade already active for this pair
+                        if paper_trader.is_symbol_active(opp['symbol']):
+                            print(f"[Auto-Trade] ⚠️  Skipping {opp['symbol']} (Score: {opp['score']:.1f}) - Trade already active")
+                            continue
+                        
+                        # Use the check_risk_limits logic implicitly via concurrent trade limits, 
+                        # but here we specifically check per-symbol uniqueness
+                        best = opp
+                        break
+                
+                if best:
                     print(f"[Auto-Trade] ✅ Found opportunity: {best['symbol']} (Score: {best['score']:.1f}/100)")
                     
                     # Calculate trade levels with improved risk-reward
@@ -110,8 +128,11 @@ class AutoTradingService:
                     self.last_trade_time = datetime.now().isoformat()
                     print(f"[Auto-Trade] ✅ Executed {trade_levels['direction']} on {best['symbol']} | Lot: {lot_size} | Score: {best['score']:.1f}")
                 else:
-                    if best:
-                        print(f"[Auto-Trade] ⚠️  Opportunity below threshold: {best['symbol']} (Score: {best['score']:.1f}/100, need 70+)")
+                    if opportunities and opportunities[0].get('score', 0) >= 45.0:
+                        # If we had high scoring opportunities but skipped them all due to being active
+                        print(f"[Auto-Trade] ⚠️  All high-scoring opportunities skipped (trades already active)")
+                    elif opportunities:
+                         print(f"[Auto-Trade] ⚠️  Best opportunity below threshold: {opportunities[0]['symbol']} (Score: {opportunities[0]['score']:.1f}/100, need 45+)")
                     else:
                         print(f"[Auto-Trade] No opportunities found in current scan")
                 
